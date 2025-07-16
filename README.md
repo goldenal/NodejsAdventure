@@ -6,7 +6,7 @@
 [circleci-url]: https://circleci.com/gh/nestjs/nest
 
 
-# Example Requests
+# Example Requests Weather APIs
 
 ## Get 15-day forecast for a location
 ```
