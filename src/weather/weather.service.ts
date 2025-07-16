@@ -1,6 +1,8 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { catchError, map } from 'rxjs/operators';
 import { lastValueFrom } from 'rxjs';
 
@@ -9,6 +11,7 @@ export class WeatherService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async getWeather(location: string, date1?: string, date2?: string): Promise<any> {
@@ -24,6 +27,15 @@ export class WeatherService {
       }
     }
     url += `?key=${apiKey}`;
+
+    // Use a cache key based on the request
+    const cacheKey = `weather:${location}:${date1 ?? ''}:${date2 ?? ''}`;
+    const cached = await this.cacheManager.get<string>(cacheKey);
+    console.log(cached ? 'CACHE HIT' : 'CACHE MISS');
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
     try {
       const response$ = this.httpService.get(url).pipe(
         map((res) => res.data),
@@ -34,7 +46,11 @@ export class WeatherService {
           throw new HttpException('Failed to fetch weather data', HttpStatus.SERVICE_UNAVAILABLE);
         })
       );
-      return await lastValueFrom(response$);
+      const data = await lastValueFrom(response$);
+      // Cache for 10 minutes
+      await this.cacheManager.set(cacheKey, JSON.stringify(data), 600);
+      console.log('CACHE SET');
+      return data;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
