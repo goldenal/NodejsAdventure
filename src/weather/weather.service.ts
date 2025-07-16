@@ -48,8 +48,9 @@ export class WeatherService {
       );
       const data = await lastValueFrom(response$);
       // Cache for 10 minutes
-      await this.cacheManager.set(cacheKey, JSON.stringify(data), 600);
-      console.log('CACHE SET');
+      await this.cacheManager.set(cacheKey, JSON.stringify(data), 60000);
+      const test = await this.cacheManager.get<string>(cacheKey);
+      console.log('REDIS TEST GET:', test ? 'FOUND' : 'NOT FOUND');
       return data;
     } catch (error) {
       if (error instanceof HttpException) {

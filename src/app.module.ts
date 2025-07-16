@@ -13,10 +13,14 @@ import { WeatherModule } from './weather/weather.module';
       isGlobal: true,
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        store: require('cache-manager-ioredis'),
-        url: config.get<string>('REDIS_URL'),
-      }),
+      useFactory: (config: ConfigService) => {
+        const url = config.get<string>('REDIS_URL');
+        console.log('Connecting to Redis at', url);
+        return {
+          store: require('cache-manager-ioredis'),
+          url,
+        };
+      },
     }),
     ThrottlerModule.forRoot({
       throttlers: [
